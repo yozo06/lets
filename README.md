@@ -3,13 +3,13 @@
 A daily story, told in your own language, that leaves you with one line of English you can use the
 same day. For people who never had the chance to learn English at school.
 
-**Status: episode 1 is playable** in Hindi and Odia, with two stories to choose from. More episodes are being written.
+**Status: episodes 1 and 2 are playable** in Hindi and Odia, with two stories to choose from. More episodes are being written.
 
 ## The idea
 
 - **A serial, not a syllabus.** One short episode a day about a family that has moved to the city.
   You come back to find out what happens next.
-- **Listen and speak.** No reading is needed. Tap pictures, repeat aloud, hear yourself.
+- **Watch, listen and speak.** The story plays by itself in pictures and voice. You only tap a picture now and then, and say the line aloud, then hear yourself.
 - **No failing.** A wrong tap means the character tries again and the story carries on.
 - **Your language first.** Hindi and Odia to begin with; Marathi, Kannada and Telugu next.
 - **Your own life.** Follow the character whose day looks like yours: Ravi at work, or Asha running the home.
@@ -23,8 +23,8 @@ npm run check    # tests, content completeness, offline file list
 ```
 
 The voice is the phone's own Hindi and English voice until recorded clips are added
-(`npm run audio`, see [docs/content-guide.md](docs/content-guide.md#voices)). Few phones have an Odia voice,
-so Odia is text-only until then.
+(`npm run audio`, see [docs/content-guide.md](docs/content-guide.md#voices)). Few phones have an Odia voice;
+until clips exist, Odia is read by the phone's Hindi voice, which is understandable but accented.
 
 ## How it is made
 
@@ -35,7 +35,9 @@ app/                    the whole site; no build step
   content/locales/        the language it is told in: hi.js, or.js
   js/program.js           the whole app as one pure function: (state, event) -> [state, effects]
   js/view.js              state -> screen
+  js/art.js               the drawings: the family, places and things, from a short description
   js/main.js              the only file that touches the phone: voice, storage, microphone, network
+  remind-sw.js            shows "today's story is ready" when the phone allows it
   vendor/sutra/           shared libraries copied from wildarc-sutra (do not edit here)
 scripts/                serve, build-sw, gen-audio-sarvam, sync-sutra
 tests/                  node --test

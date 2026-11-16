@@ -3,6 +3,6 @@ import hi from './locales/hi.js';
 import or from './locales/or.js';
 
 export { CURRICULUM } from './curriculum.js';
-export { TRACKS, ART, CAST } from './tracks.js';
+export { TRACKS } from './tracks.js';
 /** Teaching languages, in the order they are offered. */
 export const LOCALES = { hi, or };

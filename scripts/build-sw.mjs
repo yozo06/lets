@@ -14,7 +14,7 @@ const walk = (dir) => readdirSync(dir).flatMap((n) => { const p = join(dir, n); 
 const files = cacheable(walk(root).map((p) => relative(root, p)));
 const h = createHash('sha256'); for (const f of files) { h.update(f); h.update(readFileSync(join(root, f))); }
 const version = h.digest('hex').slice(0, 12);
-const sw = serviceWorker({ prefix: 'lets', version, assets: files });
+const sw = serviceWorker({ prefix: 'lets', version, assets: files, imports: ['remind-sw.js'] });
 
 const out = join(root, 'sw.js');
 if (process.argv.includes('--check')) {

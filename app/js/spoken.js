@@ -5,7 +5,7 @@ import { buildEpisode } from '../vendor/sutra/story/index.js';
 import { CURRICULUM, TRACKS, LOCALES } from '../content/index.js';
 
 /** Interface sentences that are spoken, not just shown. */
-export const SPOKEN_UI = ['ui.pick.track', 'ui.press.play', 'ui.retry', 'ui.done.title', 'ui.done.body'];
+export const SPOKEN_UI = ['ui.pick.track', 'ui.press.play', 'ui.retry', 'ui.done.title', 'ui.done.body', 'ui.tomorrow.title'];
 
 export function spokenTexts() {
   const seen = new Map();
@@ -14,6 +14,7 @@ export function spokenTexts() {
   for (const locale of Object.values(LOCALES)) {
     for (const key of SPOKEN_UI) put(locale.text[key], locale.id);
     for (const meaning of Object.values(locale.meaning)) put(meaning, locale.id);
+    for (const track of Object.values(TRACKS)) for (const scene of Object.values(track.scenes)) if (scene.tease) put(locale.text[scene.tease], locale.id);
     for (const track of Object.values(TRACKS)) CURRICULUM.skills.forEach((_, i) => {
       const built = buildEpisode(CURRICULUM, track, locale, i + 1); if (!built.ok) return;
       for (const step of built.value.steps) { if (step.t === 'tell') put(step.text, locale.id); if (step.t === 'choose') put(step.ask, locale.id); }

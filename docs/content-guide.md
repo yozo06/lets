@@ -16,27 +16,44 @@ no translation, a line with no pronunciation, a picture that does not exist.
 A scene is a list of beats. There are only four kinds:
 
 ```js
-{ t: 'tell',   say: 'work.hello.1', who: 'ravi', art: 'city' }   // story, in the learner's language
-{ t: 'teach',  line: 'hello', who: 'boss' }                      // a character uses an English line
-{ t: 'choose', ask: 'ask.phone', answer: 'phone',                // the learner helps by tapping a picture
-  options: [{ id: 'bus', art: 'bus' }, { id: 'phone', art: 'phone' }] }
-{ t: 'say',    line: 'hello' }                                   // the learner says it aloud; never judged
+{ t: 'tell',  say: 'work.hello.3', who: 'ravi', art: 'home ravi:worry asha:happy' }  // story, in the learner's language
+{ t: 'teach', line: 'hello', who: 'boss', art: 'shop boss:talk ravi:worry' }         // a character uses an English line
+pick('ask.phone', 'phone', 'clock', 'bus', 'phone')                                  // the learner taps a picture: question, answer, then the pictures
+{ t: 'say',   line: 'hello' }                                                        // the learner says it aloud; never judged
 ```
 
-- `say`, `ask` and `title` are **keys**, not text. The text for each key lives in every locale file.
-- `art` names a picture in `ART`, `who` names a speaker in `CAST` (both at the top of `tracks.js`).
+- `say`, `ask`, `title` and `tease` are **keys**, not text. The text for each key lives in every locale file.
 - Every line of the skill must be taught in the scene, and taught before the learner is asked to say it.
 - A recap of the day's lines is added automatically at the end.
+- `tease` (on every scene after the first) is the one line shown and spoken the day before, and used in the reminder.
+
+### Pictures
+
+`art` is a short description, and the drawing is made from it (`app/js/art.js`):
+
+```
+'shop boss:talk ravi:shock'      a place, then who is there and how they look
+'bus'   'ravi:wave'              a picture to tap: a thing, or a person doing something
+```
+
+- Places: `home`, `city`, `shop`, `school`, `plain`.
+- People: `ravi`, `asha`, `munni`, `boss`, `teacher`, `customer`, `clerk`.
+- Looks: `happy`, `worry`, `laugh`, `talk`, `shock`, `quiet`, `wave`, `hide`.
+- Things: `bus`, `phone`, `ticket`, `school`, `clock`, `name`, `money`.
+
+Every `tell` and `teach` beat needs a picture, so the story can be followed without reading.
+Change the faces from beat to beat: the pictures should tell the story on their own.
+A new place, person or thing is a few lines of drawing code in `art.js`.
 
 ### What makes a good episode
 
-1. **Three to four minutes.** Ten to fourteen beats.
+1. **Three to four minutes.** Twelve to sixteen beats. The story plays by itself and stops only where the learner chooses or speaks.
 2. **One or two English lines**, no more. The learner should be able to use them the same day.
 3. **A real moment** from the life of that track's learner: a counter, a gate, a phone call.
 4. **Choices by picture.** Never make reading the only way to answer.
 5. **Wrong answers are safe.** Write choices where a wrong tap is funny or harmless, never shaming.
 6. **End on a question.** The last beat should make the learner want tomorrow's episode.
-7. **Short sentences.** They are read aloud by a voice; write for the ear. Avoid brackets and symbols.
+7. **Short sentences.** One thought per beat, 75 characters at most (the check enforces it). They are read aloud; write for the ear. Avoid brackets and symbols.
 
 ## A new language
 
@@ -54,8 +71,10 @@ skill in the curriculum. Add its sentences to every locale file. `npm run check`
 
 ## Voices
 
-Until clips are recorded the app uses the phone's own voice, which exists for Hindi and English on
-most Android phones and for Odia on very few.
+A sentence is spoken from the first of these that exists: a recorded clip; the phone's own voice for that
+language (Hindi and English on most Android phones, Odia on very few); for Odia only, the phone's Hindi voice
+reading the same words in Devanagari letters, which is understandable but accented, a stopgap. With no voice at
+all the story still plays, pausing on each line long enough to read it.
 
 To record every sentence once with [Sarvam AI](https://www.sarvam.ai) (natural Indian voices, including Odia):
 

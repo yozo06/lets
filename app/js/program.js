@@ -18,19 +18,23 @@ export const init = {
   finished: {},        // skill id -> the day its episode was first finished
   streak: NO_STREAK,
   meter: NEW_METER,    // anonymous counting (see docs/analytics.md)
+  bell: false,         // true once the learner asked to be reminded
   // ----- not saved -----
   screen: 'lang',      // lang | track | home | play | done | settings
   n: 0,                // episode being played
   player: null,        // where the learner is inside it
+  paused: false,       // the story plays by itself unless paused
   day: '',             // today, as told by the last event
   canCount: false,     // whether this copy may send counts at all
+  canRemind: false,    // whether this phone can show a reminder
+  installable: false,  // whether the phone is offering to keep the app on the home screen
   mic: true,           // false once recording has failed on this phone
-  rec: 'idle',         // idle | on | have
+  rec: 'idle',         // idle | on
   nudge: false,        // true just after a wrong choice
 };
-const TRANSIENT = { screen: 'lang', n: 0, player: null, day: '', canCount: false, mic: true, rec: 'idle', nudge: false };
+const TRANSIENT = { screen: 'lang', n: 0, player: null, paused: false, day: '', canCount: false, canRemind: false, installable: false, mic: true, rec: 'idle', nudge: false };
 /** The part of the state worth keeping. */
-export const toSave = (s) => ({ v: s.v, lang: s.lang, track: s.track, finished: s.finished, streak: s.streak, meter: s.meter });
+export const toSave = (s) => ({ v: s.v, lang: s.lang, track: s.track, finished: s.finished, streak: s.streak, meter: s.meter, bell: s.bell });
 /** A saved state brought back to life. */
 export const fromSave = (saved) => ({ ...init, ...(saved && saved.v === 1 ? saved : {}), ...TRANSIENT });
 
@@ -48,50 +52,82 @@ export const todayOf = (s) => story.today(CURRICULUM, s.finished, s.day, PACE);
 /** The lines the learner has finished learning, most recent last. */
 export const learned = (s) => CURRICULUM.skills.filter((k) => s.finished[k.id]).flatMap((k) => k.lines)
   .map((id) => ({ line: CURRICULUM.lines[id], meaning: LOCALES[s.lang].meaning[id], sound: LOCALES[s.lang].sound[id] }));
+/** The next episode the learner has not finished: its number, title, the line that sells it, and a picture. */
+export const upcoming = (s) => {
+  const i = CURRICULUM.skills.findIndex((k) => !s.finished[k.id]);
+  const ep = i < 0 ? null : episodeOf(s, i + 1); if (!ep) return null;
+  const scene = TRACKS[s.track].scenes[ep.skill];
+  return { n: i + 1, title: ep.title, tease: scene.tease ? text(s, scene.tease) : '', art: (scene.beats.find((b) => b.t === 'tell' && b.art) || {}).art || '' };
+};
+/** What a reminder should say, and from which day on it may be shown. Pure; the shell hands it to the phone. */
+export const reminderFor = (s) => {
+  const up = s.lang && s.track ? upcoming(s) : null, last = Object.values(s.finished).sort().pop() || '';
+  return { show: !!(s.bell && up && last), after: last, title: text(s, 'ui.notify.title'), body: up ? up.tease || up.title : '' };
+};
 
 /* ---------- the rules ---------- */
 
 const say = (s, key, vars) => ({ t: 'speak', text: text(s, key, vars), lang: 'own' });
-const home = (s) => ({ ...s, screen: s.lang ? (s.track ? 'home' : 'track') : 'lang', player: null, n: 0, rec: 'idle', nudge: false });
+const home = (s) => ({ ...s, screen: s.lang ? (s.track ? 'home' : 'track') : 'lang', player: null, n: 0, rec: 'idle', nudge: false, paused: false });
 /** What to say when a screen opens, so that nobody has to read to know what to do. */
 const greet = (s) => (s.screen === 'track' ? [say(s, 'ui.pick.track')] : s.screen === 'home' && todayOf(s).next ? [say(s, 'ui.press.play')] : []);
 const arrive = (s) => [s, [{ t: 'hush' }, ...greet(s)]];
 
+/** Story and taught lines play by themselves, like a video, and move on when their voice has finished. */
+const playsItself = (step) => !!step && (step.t === 'tell' || step.t === 'teach');
+/** "Tell me when you have finished saying that": the shell answers with a 'spoken' event for this step. */
+const andThen = (s, cues) => ({ t: 'after-speech', n: s.n, at: s.player.at, chars: cues.filter((c) => c.t === 'speak').reduce((n, c) => n + c.text.length, 0) });
+
+function tap(s, ep, t) {
+  const step = ep.steps[s.player.at];
+  const [player, cues] = story.play(ep)(s.player, t);
+  const end = cues.find((c) => c.t === 'finished');
+  if (end) {
+    const first = !s.finished[ep.skill];
+    const done = { ...s, screen: 'done', player, rec: 'idle', nudge: false, paused: false, finished: first ? { ...s.finished, [ep.skill]: s.day } : s.finished, streak: touch(s.streak, s.day) };
+    const up = upcoming(done);
+    return [done, [{ t: 'hush' }, { t: 'cheer' }, say(done, 'ui.done.title'), say(done, 'ui.done.body'), ...(up && up.tease ? [say(done, 'ui.tomorrow.title'), { t: 'speak', text: up.tease, lang: 'own' }] : [])]];
+  }
+  const moved = player.at !== s.player.at, now = { ...s, player, rec: moved ? 'idle' : s.rec };
+  if (moved) { const next = ep.steps[player.at]; return [{ ...now, nudge: false, paused: false }, [{ t: 'hush' }, ...cues, ...(playsItself(next) ? [andThen(now, cues)] : [])]]; }
+  if (t.t === 'again') return [now, [{ t: 'hush' }, ...cues, ...(!s.paused && (playsItself(step) || (player.ready && step.t !== 'recap')) ? [andThen(now, cues)] : [])]];
+  if (cues.some((c) => c.t === 'retry')) return [{ ...now, nudge: true }, [...cues, say(s, 'ui.retry')]];
+  // A right choice, or a line said (or passed over): a short beat, then the story carries on by itself.
+  if (player.ready && !s.player.ready) return [{ ...now, nudge: false }, [...cues, andThen(now, [])]];
+  return [now, cues];
+}
+
 function main(s0, e) {
   const s = e.day ? { ...s0, day: e.day } : s0;
+  const ep = s.screen === 'play' && s.player ? episodeOf(s) : null;
   switch (e.t) {
-    case 'opened': return [home({ ...s, canCount: !!e.canCount }), []]; // nothing is spoken before the first tap: browsers do not allow it
+    case 'opened': return [home({ ...s, canCount: !!e.canCount, canRemind: !!e.canRemind }), []]; // nothing is spoken before the first tap: browsers do not allow it
     case 'lang': return LOCALES[e.lang] ? arrive(home({ ...s, lang: e.lang })) : [s, []];
     case 'track': return TRACKS[e.track] ? arrive(home({ ...s, track: e.track })) : [s, []];
-    case 'home': return arrive(home(s));
+    case 'home': case 'quit': return arrive(home(s));
     case 'settings': return [{ ...s, screen: 'settings', player: null }, [{ t: 'hush' }]];
-    case 'choose-lang': return [{ ...s, screen: 'lang', player: null }, [{ t: 'hush' }]];
-    case 'choose-track': return arrive({ ...s, screen: 'track', player: null });
     case 'start': {
-      const ep = episodeOf(s, e.n); if (!ep) return [s, []];
-      const [player, cues] = story.begin(ep);
-      return [{ ...s, screen: 'play', n: e.n, player, rec: 'idle', nudge: false }, [{ t: 'hush' }, ...cues]];
+      const first = episodeOf(s, e.n); if (!first) return [s, []];
+      const [player, cues] = story.begin(first), now = { ...s, screen: 'play', n: e.n, player, rec: 'idle', nudge: false, paused: false };
+      return [now, [{ t: 'hush' }, ...cues, ...(playsItself(first.steps[0]) ? [andThen(now, cues)] : [])]];
     }
-    case 'tap': {
-      const ep = s.screen === 'play' && s.player ? episodeOf(s) : null; if (!ep) return [s, []];
-      const [player, cues] = story.play(ep)(s.player, e.tap);
-      const moved = player.at !== s.player.at;
-      const end = cues.find((c) => c.t === 'finished');
-      if (end) {
-        const first = !s.finished[ep.skill];
-        const done = { ...s, screen: 'done', player, rec: 'idle', nudge: false, finished: first ? { ...s.finished, [ep.skill]: s.day } : s.finished, streak: touch(s.streak, s.day) };
-        return [done, [{ t: 'hush' }, { t: 'cheer' }, say(done, 'ui.done.title'), say(done, 'ui.done.body')]];
-      }
-      const retry = cues.some((c) => c.t === 'retry');
-      const fx = [...(moved || e.tap.t === 'again' ? [{ t: 'hush' }] : []), ...cues, ...(retry ? [say(s, 'ui.retry')] : [])];
-      return [{ ...s, player, rec: moved ? 'idle' : s.rec, nudge: retry }, fx];
+    case 'tap': return ep ? tap(s, ep, e.tap) : [s, []];
+    // The shell reports that a step's voice has finished: move on, unless the learner paused or has gone elsewhere.
+    case 'spoken': return ep && !s.paused && e.n === s.n && e.at === s.player.at && s.player.ready && ep.steps[s.player.at].t !== 'recap' ? tap(s, ep, { t: 'next' }) : [s, []];
+    case 'pause': {
+      if (!ep) return [s, []];
+      if (!s.paused) return [{ ...s, paused: true }, [{ t: 'hush' }]];
+      return tap({ ...s, paused: false }, ep, { t: 'again' });
     }
-    case 'quit': return arrive(home(s));
     case 'hear': return [s, [{ t: 'hush' }, { t: 'speak', text: e.text, lang: 'target' }]];
-    // Record-and-compare: tap to start, tap again (or wait) to stop, then hear the line and yourself.
-    case 'mic': return s.rec === 'on' ? [{ ...s, rec: 'have' }, [{ t: 'record-stop' }]] : [{ ...s, rec: 'on' }, [{ t: 'hush' }, { t: 'record-start' }]];
+    // Speaking: one tap starts recording, the next (or four seconds) stops it; the shell then plays the
+    // line and the learner's own voice, and reports the line as said.
+    case 'mic': return !ep ? [s, []] : s.rec === 'on' ? [{ ...s, rec: 'idle' }, [{ t: 'record-stop' }]] : [{ ...s, rec: 'on' }, [{ t: 'hush' }, { t: 'record-start' }]];
     case 'mic-failed': return [{ ...s, mic: false, rec: 'idle' }, []];
-    case 'counting': return [s, []];   // handled by the meter below
+    case 'remind': return [s, [{ t: 'remind' }]];
+    case 'reminded': return [{ ...s, bell: !!e.ok, canRemind: !!e.ok }, []];
+    case 'installable': return [{ ...s, installable: !!e.on }, []];
+    case 'install': return [{ ...s, installable: false }, [{ t: 'install' }]];
     case 'share': return [s, [{ t: 'share', text: text(s, 'ui.share.text') }]];
     default: return [s, []];
   }
@@ -102,17 +138,19 @@ export function signalsFor(before, e, after) {
   if (e.t === 'counting') return [{ t: 'opt', on: !!e.on }, ...(e.on && after.lang ? [{ t: 'open', day: after.day }] : [])];
   if (e.t === 'sent' || e.t === 'failed') return [e];
   if (!after.canCount || !after.lang) return [];
-  const day = after.day, unit = (s) => `${s.track}-${CURRICULUM.skills[s.n - 1]?.id}`;
+  const day = after.day, unit = (s) => `${s.track}-${(CURRICULUM.skills[s.n - 1] || {}).id}`;
   const out = [];
-  if (e.t === 'opened' || (e.t === 'lang' && !before.lang)) out.push({ t: 'open', day });
+  if (e.t === 'opened' || e.t === 'online' || (e.t === 'lang' && !before.lang)) out.push({ t: 'open', day });   // 'online': send whatever waited
   if (e.t === 'track' && after.track) out.push({ t: 'count', day, name: 'track/' + after.track, once: true });
   if (e.t === 'start' && after.screen === 'play') out.push({ t: 'start', day, unit: unit(after) });
   if (e.t === 'quit' && before.screen === 'play' && before.player) out.push({ t: 'quit', day, unit: unit(before), at: before.player.at });
-  if (e.t === 'tap' && before.screen === 'play') {
+  if (e.t === 'tap' && before.screen === 'play' && before.player && after.player) {
     if (after.screen === 'done') out.push({ t: 'done', day, unit: unit(before) });
-    if (before.player && after.player && after.player.spoken > before.player.spoken) out.push({ t: 'count', day, name: 'spoke' });
-    if (e.tap.t === 'skip' && after.player !== before.player) out.push({ t: 'count', day, name: 'skipped' });
+    if (after.player.spoken > before.player.spoken) out.push({ t: 'count', day, name: 'spoke' });
+    if (e.tap.t === 'skip' && after.player.ready && !before.player.ready) out.push({ t: 'count', day, name: 'skipped' });
   }
+  if (e.t === 'reminded' && e.ok) out.push({ t: 'count', day, name: 'reminder', once: true });
+  if (e.t === 'install') out.push({ t: 'count', day, name: 'install-asked', once: true });
   return out;
 }
 

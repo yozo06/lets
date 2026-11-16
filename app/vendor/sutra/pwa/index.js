@@ -15,7 +15,7 @@ const PREFIX = ${JSON.stringify(o.prefix)};
 const CORE = PREFIX + '-core-' + VERSION, AUDIO = PREFIX + '-audio-v1';
 const ASSETS = ${JSON.stringify(['./', ...o.assets])};
 const AUDIO_PATH = ${JSON.stringify(o.audioPath ?? '/audio/')}, AUDIO_EXTS = ${JSON.stringify(exts.map((x) => '.' + x))};
-
+${(o.imports ?? []).length ? `importScripts(${(o.imports ?? []).map((f) => JSON.stringify(f)).join(', ')});\n` : ''}
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CORE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
 });

@@ -1,6 +1,6 @@
 {
   "name": "lets",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "LETS: Learn English Through Stories. A daily story in your own language that leaves you with one line of English. Offline-first, no accounts.",
   "type": "module",
   "private": true,

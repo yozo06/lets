@@ -16,6 +16,7 @@ Short names, one small request each, with nothing attached. `<lang>` is the teac
 | `lets/<lang>/unit/<track>-<skill>/start` and `/done` | once per episode | how far people get |
 | `lets/<lang>/unit/<track>-<skill>/quit/<step>` | once, the first time an episode is left unfinished | where episodes lose people |
 | `lets/<lang>/spoke`, `lets/<lang>/skipped` | when a line is said aloud, or passed over | whether people speak |
+| `lets/<lang>/reminder`, `lets/<lang>/install-asked` | once, when a reminder is switched on, or the app is put on the home screen | whether people want to come back |
 
 ## What is never sent
 
