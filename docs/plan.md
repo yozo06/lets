@@ -68,9 +68,7 @@ Seven skills, two tracks, two languages (Hindi, Odia):
 
 After two weeks: who opened it on day 2 and day 7, and can they say the seven lines?
 
-## Order of work
+## Where it stands
 
-1. `story` library in wildarc-sutra: the three-part model and a no-fail episode player.
-2. Pilot content, checked by native speakers.
-3. Voices.
-4. Test with a handful of learners, read the numbers, watch them use it.
+- Done: the `story` library in wildarc-sutra, and a playable episode 1 here (both tracks, Hindi and Odia).
+- Next: the remaining six pilot episodes; recorded voices; a native check of the Odia text; then the test.

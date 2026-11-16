@@ -1,0 +1,16 @@
+{
+  "name": "lets",
+  "version": "0.1.0",
+  "description": "LETS: Learn English Through Stories. A daily story in your own language that leaves you with one line of English. Offline-first, no accounts.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "start": "node scripts/serve.mjs",
+    "test": "node --test",
+    "sw": "node scripts/build-sw.mjs",
+    "sutra": "node scripts/sync-sutra.mjs",
+    "audio": "node scripts/gen-audio-sarvam.mjs",
+    "check": "npm test && node scripts/build-sw.mjs --check"
+  }
+}

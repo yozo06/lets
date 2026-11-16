@@ -1,0 +1,16 @@
+{
+  "name": "LETS · Learn English Through Stories",
+  "short_name": "LETS",
+  "description": "A daily story in your own language that leaves you with one line of English.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFF4DE",
+  "theme_color": "#F4A300",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
