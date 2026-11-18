@@ -48,3 +48,15 @@ test('an episode is a few minutes long, ends on its recap, and makes the learner
 test('every episode after the first has a line to sell it the day before', () => {
   for (const track of Object.values(TRACKS)) CURRICULUM.skills.slice(1).forEach((k) => assert.ok(track.scenes[k.id].tease, `${track.id}/${k.id} needs a tease`));
 });
+
+test('a shared link shows a picture: the page names a preview image that exists, at the public address', async () => {
+  const { readFileSync, existsSync, statSync } = await import('node:fs');
+  const { SHARE_URL } = await import('../app/js/config.js');
+  const html = readFileSync(new URL('../app/index.html', import.meta.url), 'utf8');
+  const meta = (p) => (html.match(new RegExp(`<meta property="${p}" content="([^"]*)"`)) || [])[1];
+  assert.equal(meta('og:url'), SHARE_URL);
+  assert.ok(meta('og:title') && meta('og:description'));
+  const image = meta('og:image'); assert.ok(image.startsWith(SHARE_URL), 'the image address must be absolute');
+  const file = new URL('../app/' + image.slice(SHARE_URL.length), import.meta.url);
+  assert.ok(existsSync(file)); assert.ok(statSync(file).size < 300_000, 'small enough for WhatsApp to show');
+});
