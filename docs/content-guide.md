@@ -83,8 +83,10 @@ add the secret `SARVAM_API_KEY` to the repository (Settings → Secrets and vari
 1. mode **sample**: records two long sentences per language in a few voices and attaches them to the run as
    `tts-voice-samples`. Nothing is saved to the app. Download it, open `index.html` inside to hear the voices
    side by side, pick one.
-2. mode **full**, with that voice in "speaker": records everything still missing, saves it to the app and
-   publishes it.
+2. mode **full**: records everything still missing in each voice listed under "voices" (`gokul,roopa`),
+   saves it to the app and publishes it. Each voice is its own pack (`app/audio/<voice>/`); learners choose
+   between them in the settings, by ear: each card shows a drawn person and plays a sentence when tapped.
+   A new voice also needs an entry in `VOICES` in `app/js/config.js` (a face and a word for it).
 
 The recorder is shared: it lives in [wildarc-sutra's `tts`](https://github.com/yozo06/wildarc-sutra/tree/main/src/tts),
 and this app only tells it which sentences exist (`npm run sentences`). To record by hand instead, pipe that

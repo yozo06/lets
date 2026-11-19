@@ -3,10 +3,10 @@
 // The audience may read little, so every screen works from pictures, one big button and a spoken voice.
 import { esc } from '../vendor/sutra/browser/runtime.js';
 import { current } from '../vendor/sutra/habit/index.js';
-import { text, episodeOf, todayOf, learned, upcoming } from './program.js';
+import { text, episodeOf, todayOf, learned, upcoming, voiceOf } from './program.js';
 import { scene, tile, face, icon } from './art.js';
 import { TRACKS, LOCALES, CURRICULUM } from '../content/index.js';
-import { VERSION } from './config.js';
+import { VERSION, VOICES } from './config.js';
 
 const btn = (action, inner, attrs = '') => `<button data-a="${action}" ${attrs}>${inner}</button>`;
 const label = (s, key) => `aria-label="${esc(text(s, key))}"`;
@@ -115,10 +115,14 @@ function doneScreen(s) {
   </main>`;
 }
 
+// A voice is chosen by ear: each card shows a person and plays a sentence in that voice when tapped.
+const voiceCards = (s) => s.packs.map((p) => { const v = VOICES[p.id], on = voiceOf(s) === p.id; return btn('voice', (v ? face(v.who, 'talk') : icon('sound')) + `<span class="card-label">${esc(v ? text(s, v.name) : p.label)}</span>`, `class="card small${on ? ' on' : ''}" data-v="${esc(p.id)}" aria-pressed="${on}"`); }).join('');
+
 const settingsScreen = (s) => `<header class="bar">${btn('home', icon('back'), `class="icon" ${label(s, 'ui.back')}`)}<span class="bar-title">${esc(text(s, 'ui.settings'))}</span><span class="icon"></span></header>
 <main class="screen settings">
   <section class="set"><h2 class="eyebrow">${esc(text(s, 'ui.language'))}</h2><div class="pair">${Object.values(LOCALES).map((l) => btn('lang', esc(l.name), `class="choice small${s.lang === l.id ? ' on' : ''}" data-v="${l.id}" lang="${l.id}" aria-pressed="${s.lang === l.id}"`)).join('')}</div></section>
   <section class="set"><h2 class="eyebrow">${esc(text(s, 'ui.story'))}</h2><div class="pair">${trackCards(s, ' small')}</div></section>
+  ${s.packs.length > 1 ? `<section class="set"><h2 class="eyebrow">${esc(text(s, 'ui.voice'))}</h2><div class="pair">${voiceCards(s)}</div></section>` : ''}
   ${s.canCount ? `<section class="set"><h2 class="eyebrow">${esc(text(s, 'ui.counting'))}</h2><div class="pair">${btn('counting', esc(text(s, 'ui.on')), `class="choice small${s.meter.on ? ' on' : ''}" data-v="1" aria-pressed="${s.meter.on}"`)}${btn('counting', esc(text(s, 'ui.off')), `class="choice small${s.meter.on ? '' : ' on'}" data-v="0" aria-pressed="${!s.meter.on}"`)}</div><p class="fine">${esc(text(s, 'ui.counting.note'))}</p></section>` : ''}
   <p class="fine center" lang="en">LETS ${VERSION} · ${CURRICULUM.skills.length} episodes</p>
 </main>`;

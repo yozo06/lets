@@ -19,6 +19,7 @@ export const init = {
   streak: NO_STREAK,
   meter: NEW_METER,    // anonymous counting (see docs/analytics.md)
   bell: false,         // true once the learner asked to be reminded
+  voice: '',           // the voice pack the learner chose; '' = the default one
   // ----- not saved -----
   screen: 'lang',      // lang | track | home | play | done | settings
   n: 0,                // episode being played
@@ -31,10 +32,12 @@ export const init = {
   mic: true,           // false once recording has failed on this phone
   rec: 'idle',         // idle | on
   nudge: false,        // true just after a wrong choice
+  packs: [],           // the voice packs this copy carries: [{ id, label }]
+  fallback: '',        // the default voice pack
 };
-const TRANSIENT = { screen: 'lang', n: 0, player: null, paused: false, day: '', canCount: false, canRemind: false, installable: false, mic: true, rec: 'idle', nudge: false };
+const TRANSIENT = { screen: 'lang', n: 0, player: null, paused: false, day: '', canCount: false, canRemind: false, installable: false, mic: true, rec: 'idle', nudge: false, packs: [], fallback: '' };
 /** The part of the state worth keeping. */
-export const toSave = (s) => ({ v: s.v, lang: s.lang, track: s.track, finished: s.finished, streak: s.streak, meter: s.meter, bell: s.bell });
+export const toSave = (s) => ({ v: s.v, lang: s.lang, track: s.track, finished: s.finished, streak: s.streak, meter: s.meter, bell: s.bell, voice: s.voice });
 /** A saved state brought back to life. */
 export const fromSave = (saved) => ({ ...init, ...(saved && saved.v === 1 ? saved : {}), ...TRANSIENT });
 
@@ -59,6 +62,16 @@ export const upcoming = (s) => {
   const scene = TRACKS[s.track].scenes[ep.skill];
   return { n: i + 1, title: ep.title, tease: scene.tease ? text(s, scene.tease) : '', art: (scene.beats.find((b) => b.t === 'tell' && b.art) || {}).art || '' };
 };
+/** The voice pack in use: the learner's choice if this copy carries it, otherwise the default. */
+export const voiceOf = (s) => (s.packs.some((p) => p.id === s.voice) ? s.voice : s.fallback);
+const stepWords = (step) => (step.t === 'tell' ? [step.text] : step.t === 'teach' ? [step.line.text, step.meaning] : step.t === 'choose' ? [step.ask] : step.t === 'say' ? [step.line.text] : step.t === 'recap' ? step.lines.map((l) => l.line.text) : []);
+/** Everything that may be spoken from the home screen to the end of the next episode. */
+export const wordsAhead = (s) => {
+  const up = s.lang && s.track ? upcoming(s) : null, ep = up ? episodeOf(s, up.n) : null; if (!ep) return [];
+  const after = upcoming({ ...s, finished: { ...s.finished, [ep.skill]: s.day || 'x' } });
+  const words = [text(s, 'ui.press.play'), up.tease, ...ep.steps.flatMap(stepWords), text(s, 'ui.retry'), text(s, 'ui.done.title'), text(s, 'ui.done.body'), ...(after && after.tease ? [text(s, 'ui.tomorrow.title'), after.tease] : [])];
+  return [...new Set(words.filter(Boolean))];
+};
 /** What a reminder should say, and from which day on it may be shown. Pure; the shell hands it to the phone. */
 export const reminderFor = (s) => {
   const up = s.lang && s.track ? upcoming(s) : null, last = Object.values(s.finished).sort().pop() || '';
@@ -71,7 +84,9 @@ const say = (s, key, vars) => ({ t: 'speak', text: text(s, key, vars), lang: 'ow
 const home = (s) => ({ ...s, screen: s.lang ? (s.track ? 'home' : 'track') : 'lang', player: null, n: 0, rec: 'idle', nudge: false, paused: false });
 /** What to say when a screen opens, so that nobody has to read to know what to do. */
 const greet = (s) => (s.screen === 'track' ? [say(s, 'ui.pick.track')] : s.screen === 'home' && todayOf(s).next ? [say(s, 'ui.press.play')] : []);
-const arrive = (s) => [s, [{ t: 'hush' }, ...greet(s)]];
+/** While waiting on the home screen, fetch the next episode's clips, so the story does not stall on a slow connection. */
+const ahead = (s) => (s.screen === 'home' && s.packs.length ? [{ t: 'fetch-ahead', texts: wordsAhead(s) }] : []);
+const arrive = (s) => [s, [{ t: 'hush' }, ...greet(s), ...ahead(s)]];
 
 /** Story and taught lines play by themselves, like a video, and move on when their voice has finished. */
 const playsItself = (step) => !!step && (step.t === 'tell' || step.t === 'teach');
@@ -106,6 +121,10 @@ function main(s0, e) {
     case 'track': return TRACKS[e.track] ? arrive(home({ ...s, track: e.track })) : [s, []];
     case 'home': case 'quit': return arrive(home(s));
     case 'settings': return [{ ...s, screen: 'settings', player: null }, [{ t: 'hush' }]];
+    // The shell has read which voice packs exist.
+    case 'voices': { const now = { ...s, packs: Array.isArray(e.packs) ? e.packs : [], fallback: e.fallback || '' }; return [now, ahead(now)]; }
+    // The learner picks a voice: remember it and let them hear it at once.
+    case 'voice': { if (!s.packs.some((p) => p.id === e.pack)) return [s, []]; const now = { ...s, voice: e.pack }; return [now, [{ t: 'hush' }, say(now, 'ui.done.body')]]; }
     case 'start': {
       const first = episodeOf(s, e.n); if (!first) return [s, []];
       const [player, cues] = story.begin(first), now = { ...s, screen: 'play', n: e.n, player, rec: 'idle', nudge: false, paused: false };
@@ -151,6 +170,7 @@ export function signalsFor(before, e, after) {
   }
   if (e.t === 'reminded' && e.ok) out.push({ t: 'count', day, name: 'reminder', once: true });
   if (e.t === 'install') out.push({ t: 'count', day, name: 'install-asked', once: true });
+  if (e.t === 'voice' && after.voice !== before.voice) out.push({ t: 'count', day, name: 'voice/' + after.voice });
   return out;
 }
 

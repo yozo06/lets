@@ -34,13 +34,21 @@ function queue(job) { const mine = generation; talking = talking.then(() => (min
 function speak(state, words, which) {
   queue(() => {
     const tag = tagFor(state, which);
-    let what = plan(voices, words, { base: 'audio', deviceVoice: !!deviceVoice(tag) }), who = tag;
+    let what = plan(voices, words, { base: 'audio', chosen: state.voice || '', deviceVoice: !!deviceVoice(tag) }), who = tag;
     if (what.t === 'silent' && tag === 'or' && deviceVoice('hi')) { what = { t: 'voice', text: transliterate(words, 'odia', 'devanagari') }; who = 'hi'; }
     if (what.t !== 'silent') heard = true;
     return speakerFor(who).play(what);
   });
 }
 const playUrl = (url) => queue(() => new Promise((done) => { heard = true; player = new Audio(url); player.onended = player.onerror = () => done(); player.play().catch(() => done()); }));
+/** Fetch the next episode's clips ahead of time, one after another; the service worker keeps them for offline. */
+const fetched = new Set();
+function fetchAhead(state, texts) {
+  if (navigator.onLine === false || (navigator.connection && navigator.connection.saveData)) return;
+  const urls = texts.map((t) => plan(voices, t, { base: 'audio', chosen: state.voice || '' })).filter((p) => p.t === 'clip').map((p) => p.url).filter((u) => !fetched.has(u));
+  urls.forEach((u) => fetched.add(u));
+  (async () => { for (const u of urls) { try { await fetch(u); } catch (e) { fetched.delete(u); } } })();
+}
 /** After the voice has finished (or, with no voice, after time to read), tell the program so the story can move on. */
 function afterSpeech(effect, dispatch) {
   queue(() => new Promise((done) => {
@@ -109,6 +117,7 @@ const app = start({
       case 'speak': return speak(state, effect.text, effect.lang);
       case 'after-speech': return afterSpeech(effect, dispatch);
       case 'hush': return hush();
+      case 'fetch-ahead': return fetchAhead(state, effect.texts);
       case 'cheer': tone([[660, 0, 0.12], [880, 0.1, 0.12], [1320, 0.2, 0.22]]); return buzz(30);
       case 'retry': return tone([[300, 0, 0.18]]);
       case 'save': writeJson(store, 'state', toSave(state)); return void leavePlan(state);
@@ -138,13 +147,14 @@ onActions(root, (name, data) => {
     case 'pick': return { t: 'tap', tap: { t: 'pick', option: data.v } };
     case 'next': case 'said': case 'skip': case 'again': return { t: 'tap', tap: { t: name } };
     case 'counting': return { t: 'counting', on: data.v === '1' };
+    case 'voice': return { t: 'voice', pack: data.v };
     case 'hear': return { t: 'hear', text: data.v };
     default: return { t: name };
   }
 }, dispatch);
 
 dispatch({ t: 'opened', canCount, canRemind });
-loadVoices('audio/manifest.json').then((v) => { voices = v; });
+loadVoices('audio/manifest.json').then((v) => { voices = v; dispatch({ t: 'voices', packs: v.packs.map((p) => ({ id: p.id, label: p.label })), fallback: v.fallback }); });
 try { window.speechSynthesis.getVoices(); } catch (e) { /* no device voice */ }   // asks the phone to load its voices early
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installOffer = e; dispatch({ t: 'installable', on: true }); });
 window.addEventListener('appinstalled', () => { installOffer = null; dispatch({ t: 'installable', on: false }); });

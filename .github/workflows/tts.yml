@@ -3,7 +3,9 @@ name: tts
 # Needs the repository secret SARVAM_API_KEY (Settings → Secrets and variables → Actions).
 #   mode "sample": a few sentences in each voice, offered on the run page as "tts-voice-samples"
 #                  (open index.html inside to compare). Nothing is committed.
-#   mode "full":   everything still missing, in one voice; committed, then the site is republished.
+#   mode "full":   everything still missing, in each of the voices; each voice is its own pack
+#                  (app/audio/<voice>/) that learners choose between in the settings.
+#                  Committed, then the site is republished.
 # The work is done by wildarc-sutra's shared workflow; this file only says what is particular to LETS.
 on:
   workflow_dispatch:
@@ -15,10 +17,10 @@ on:
         default: sample
       speakers:
         description: 'sample: voices to try, comma-separated'
-        default: ritu,kavya,roopa,gokul
-      speaker:
-        description: 'full: the one voice to use'
-        default: ritu
+        default: gokul,roopa,ritu,kavya
+      voices:
+        description: 'full: voices to record, comma-separated (each becomes a pack learners can choose; see VOICES in app/js/config.js)'
+        default: gokul,roopa
       pace:
         description: Speaking pace (0.5 to 2.0, 1.0 = normal)
         default: '0.9'
@@ -35,11 +37,11 @@ jobs:
     with:
       mode: ${{ inputs.mode }}
       speakers: ${{ inputs.speakers }}
-      speaker: ${{ inputs.speaker }}
+      voices: ${{ inputs.voices }}
       pace: ${{ inputs.pace }}
       force: ${{ inputs.force }}
       sentences: node scripts/sentences.mjs
-      default-pack: sarvam
+      default-pack: gokul
       after: npm run sw && npm run check
       commit: app/sw.js
       publish: pages.yml

@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { init, update, fromSave, toSave, episodeOf, todayOf, learned, upcoming, reminderFor, text } from '../app/js/program.js';
+import { init, update, fromSave, toSave, episodeOf, todayOf, learned, upcoming, reminderFor, text, voiceOf, wordsAhead } from '../app/js/program.js';
+import { view } from '../app/js/view.js';
 import { fold } from '../app/vendor/sutra/core/program.js';
 
 const D1 = '2026-11-16', D2 = '2026-11-17', D3 = '2026-11-18';
@@ -185,6 +186,45 @@ test('everything the app says aloud is on the list used to record voices', async
     for (const words of said) assert.ok(known.has(words), `not on the recording list: ${words}`);
   }
   assert.ok(spokenTexts().some((x) => x.lang === 'en' && x.text === 'My name is'));
+});
+
+const PACKS = { t: 'voices', packs: [{ id: 'gokul', label: 'Gokul' }, { id: 'roopa', label: 'Roopa' }], fallback: 'gokul', day: D1 };
+
+test('voices: the learner chooses by ear, the choice is kept, and a missing voice falls back', () => {
+  let s = ready('hi', 'work', true), fx;
+  assert.ok(!view({ ...s, screen: 'settings' }).includes('data-a="voice"'), 'no choice is offered until there are two voices');
+  [s] = update(s, PACKS);
+  assert.equal(voiceOf(s), 'gokul', 'the default until the learner chooses');
+  [s] = update(s, { t: 'settings', day: D1 });
+  const html = view(s);
+  assert.equal((html.match(/data-a="voice"/g) || []).length, 2);
+  assert.ok(/data-a="voice"[^>]*class="card small on" data-v="gokul"/.test(html) || /class="card small on"[^>]*data-v="gokul"/.test(html), 'the voice in use is marked');
+  assert.ok(html.includes(text(s, 'ui.voice.man')) && html.includes(text(s, 'ui.voice.woman')) && !html.includes('Gokul'), 'shown as a person and a word in the learner\'s language, not a name to read');
+  [s, fx] = update(s, { t: 'voice', pack: 'roopa', day: D1 });
+  assert.deepEqual([s.voice, voiceOf(s), spoken(fx), kinds(fx).includes('save')], ['roopa', 'roopa', [text(s, 'ui.done.body')], true]);
+  assert.ok([...hits(fx), ...s.meter.queue.map((h) => h.name)].includes('lets/hi/voice/roopa'), 'the choice is counted, by pack name only');
+  assert.equal(update(s, { t: 'voice', pack: 'nobody', day: D1 })[0].voice, 'roopa', 'an unknown voice is ignored');
+  const back = fromSave(JSON.parse(JSON.stringify(toSave(s))));
+  assert.deepEqual([back.voice, back.packs, voiceOf(back)], ['roopa', [], ''], 'the choice is saved; the list of voices is read again each visit');
+  const gone = update(back, { t: 'voices', packs: [{ id: 'gokul', label: 'Gokul' }], fallback: 'gokul', day: D2 })[0];
+  assert.equal(voiceOf(gone), 'gokul', 'a chosen voice that is no longer carried falls back to the default');
+});
+
+test('the next episode is fetched ahead: everything it will say, and nothing when there are no clips', async () => {
+  const { spokenTexts } = await import('../app/js/spoken.js');
+  const known = new Set(spokenTexts().map((x) => x.text));
+  let s = ready('or', 'home'), fx;
+  assert.ok(!kinds(update(s, { t: 'home', day: D1 })[1]).includes('fetch-ahead'), 'no voices, nothing to fetch');
+  [s, fx] = update(s, PACKS);
+  const ahead = fx.find((f) => f.t === 'fetch-ahead');
+  assert.ok(ahead && ahead.texts.length > 15 && ahead.texts.every((t) => known.has(t)), 'only sentences that have a clip');
+  assert.deepEqual(ahead.texts, wordsAhead(s));
+  const [a, fx1] = begin(s, 1); const [b, fx2] = watch(a, { wrongFirst: true });
+  for (const said of [...spoken(fx1), ...spoken(fx2)]) assert.ok(ahead.texts.includes(said), `episode 1 says something that was not fetched ahead: ${said}`);
+  const [, fx3] = update(b, { t: 'home', day: D1 });
+  const next = fx3.find((f) => f.t === 'fetch-ahead');
+  assert.ok(next && next.texts.includes(upcoming(b).tease) && !next.texts.includes(episodeOf(a, 1).steps[0].text), 'after episode 1, tomorrow\'s episode is fetched');
+  assert.ok(!kinds(update(update(s, { t: 'settings', day: D1 })[0], PACKS)[1]).includes('fetch-ahead'), 'only from the home screen');
 });
 
 test('text falls back to the key rather than breaking', () => { assert.equal(text(ready(), 'no.such.key'), 'no.such.key'); assert.equal(text(ready(), 'ui.episode', { n: 3 }), 'भाग 3'); });

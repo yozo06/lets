@@ -34,6 +34,16 @@ test('every drawing a scene asks for can be drawn', () => {
   for (const svg of [scene('city ravi:happy asha:worry munni:laugh'), tile('bus'), tile('asha:wave'), face('boss', 'talk')]) assert.match(svg, /^<svg [^>]*viewBox="[^"]+"[^>]*>.*<\/svg>$/s);
 });
 
+test('every voice on offer has a face and a word in every language', async () => {
+  const { VOICES } = await import('../app/js/config.js');
+  assert.ok(Object.keys(VOICES).length >= 2);
+  for (const [id, v] of Object.entries(VOICES)) {
+    assert.match(id, /^[a-z0-9_-]+$/, 'a voice id is a folder name');
+    assert.ok(PEOPLE[v.who], `voice ${id} needs a face`);
+    for (const l of Object.values(LOCALES)) assert.ok(l.text[v.name], `${l.id} has no word for ${v.name}`);
+  }
+});
+
 test('an episode is a few minutes long, ends on its recap, and makes the learner choose and speak', () => {
   for (const track of Object.values(TRACKS)) for (const locale of Object.values(LOCALES)) CURRICULUM.skills.forEach((_, i) => {
     const e = buildEpisode(CURRICULUM, track, locale, i + 1).value;
