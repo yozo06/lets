@@ -8,7 +8,7 @@ import { touch, NO_STREAK } from '../vendor/sutra/habit/index.js';
 import { meter, NEW_METER } from '../vendor/sutra/analytics/index.js';
 import { translate } from '../vendor/sutra/i18n/index.js';
 import { CURRICULUM, TRACKS, LOCALES } from '../content/index.js';
-import { PACE } from './config.js';
+import { PER_DAY } from './config.js';
 
 /** Saved between visits: everything except what is on screen right now. */
 export const init = {
@@ -50,8 +50,17 @@ export const episodeOf = (s, n = s.n) => {
   const built = story.buildEpisode(CURRICULUM, TRACKS[s.track], LOCALES[s.lang], n);
   return built.ok ? built.value : null;
 };
-/** Which episode is next, whether it only opens tomorrow, and which can be replayed. */
-export const todayOf = (s) => story.today(CURRICULUM, s.finished, s.day, PACE);
+/**
+ * Which episode is open now (`next`), which have been seen, and whether the rest waits for tomorrow.
+ * One new episode a day opens by itself. After it, up to PER_DAY in all may be watched the same day:
+ * `early` is the one on offer, shown beside tomorrow's teaser rather than as today's story.
+ */
+export const todayOf = (s) => {
+  const { next, seen } = story.today(CURRICULUM, s.finished, s.day, 'free');
+  const today = s.day ? Object.values(s.finished).filter((d) => d >= s.day).length : 0;   // new episodes finished today
+  if (next === undefined || today === 0) return { next, wait: false, seen };
+  return today < PER_DAY ? { next: undefined, wait: true, early: next, seen } : { next: undefined, wait: true, seen };
+};
 /** The lines the learner has finished learning, most recent last. */
 export const learned = (s) => CURRICULUM.skills.filter((k) => s.finished[k.id]).flatMap((k) => k.lines)
   .map((id) => ({ line: CURRICULUM.lines[id], meaning: LOCALES[s.lang].meaning[id], sound: LOCALES[s.lang].sound[id] }));
@@ -162,6 +171,7 @@ export function signalsFor(before, e, after) {
   if (e.t === 'opened' || e.t === 'online' || (e.t === 'lang' && !before.lang)) out.push({ t: 'open', day });   // 'online': send whatever waited
   if (e.t === 'track' && after.track) out.push({ t: 'count', day, name: 'track/' + after.track, once: true });
   if (e.t === 'start' && after.screen === 'play') out.push({ t: 'start', day, unit: unit(after) });
+  if (e.t === 'start' && after.screen === 'play' && todayOf(before).early === e.n) out.push({ t: 'count', day, name: 'ahead' });   // did not wait for tomorrow
   if (e.t === 'quit' && before.screen === 'play' && before.player) out.push({ t: 'quit', day, unit: unit(before), at: before.player.at });
   if (e.t === 'tap' && before.screen === 'play' && before.player && after.player) {
     if (after.screen === 'done') out.push({ t: 'done', day, unit: unit(before) });

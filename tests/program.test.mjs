@@ -5,6 +5,8 @@ import { view } from '../app/js/view.js';
 import { fold } from '../app/vendor/sutra/core/program.js';
 
 const D1 = '2026-11-16', D2 = '2026-11-17', D3 = '2026-11-18';
+const dayN = (n) => `2026-11-${15 + n}`;   // the day episode n would be watched at one a day
+const EPISODES = 7;
 const run = (s, events) => fold(update, s, events);
 const kinds = (fx) => fx.map((f) => f.t);
 const spoken = (fx) => fx.filter((f) => f.t === 'speak').map((f) => f.text);
@@ -76,19 +78,47 @@ test('finishing: well done, the line to take away, and tomorrow\'s hook said alo
   assert.ok(spoken(fx).includes('Hello'));
   assert.deepEqual(spoken(fx).slice(-4), ['शाबाश!', 'आज ही किसी से बोलकर देखिए।', 'कल की कहानी', 'मालिक ने क्या पूछा? रवि क्या जवाब देगा?']);
   assert.deepEqual(learned(s).map((l) => [l.line.text, l.sound, l.meaning]), [['Hello', 'हेलो', 'नमस्ते']]);
-  assert.deepEqual(todayOf(s), { next: undefined, wait: true, seen: [1] }, 'the next episode opens tomorrow');
+  assert.deepEqual(todayOf(s), { next: undefined, wait: true, early: 2, seen: [1] }, 'the next episode is tomorrow\'s, though it may be watched early');
   assert.deepEqual(upcoming(s), { n: 2, title: 'आपका नाम?', tease: 'मालिक ने क्या पूछा? रवि क्या जवाब देगा?', art: 'shop boss:talk ravi:shock' });
 });
 
-test('the next day the second episode is there, and after it the shelf is empty until more is written', () => {
+test('the next day the second episode is there; at the end of the shelf nothing is promised', () => {
   let [s] = watch(begin(ready(), 1)[0]);
   [s] = update(s, { t: 'opened', day: D2, canCount: false });
   assert.deepEqual(todayOf(s), { next: 2, wait: false, seen: [1] });
   let fx; [s, fx] = watch(begin(s, 2, D2)[0]);
   assert.deepEqual(s.finished, { hello: D1, name: D2 }); assert.equal(s.streak.n, 2);
   assert.deepEqual(learned(s).map((l) => l.line.text), ['Hello', 'What is your name?', 'My name is']);
+  assert.equal(upcoming(s).n, 3); assert.ok(spoken(fx).includes('कल की कहानी'));
+  for (let n = 3; n <= EPISODES; n++) { [s] = update(s, { t: 'opened', day: dayN(n), canCount: false }); assert.equal(todayOf(s).next, n); [s, fx] = watch(begin(s, n, dayN(n))[0]); assert.equal(s.screen, 'done'); }
+  assert.equal(Object.keys(s.finished).length, EPISODES); assert.equal(s.streak.n, EPISODES);
   assert.equal(upcoming(s), null); assert.ok(!spoken(fx).includes('कल की कहानी'), 'no promise of an episode that does not exist');
-  assert.deepEqual(todayOf({ ...s, day: D3 }), { next: undefined, wait: false, seen: [1, 2] });
+  assert.deepEqual(todayOf({ ...s, day: dayN(EPISODES + 1) }), { next: undefined, wait: false, seen: [1, 2, 3, 4, 5, 6, 7] });
+  assert.equal(learned(s).length, 14, 'fourteen lines in a week');
+});
+
+test('two a day: after today\'s episode one more may be watched early, then the story waits for tomorrow', () => {
+  let s = ready('hi', 'work', true), fx;
+  assert.ok(!view(s).includes(text(s, 'ui.early')), 'nothing to skip ahead to before today\'s episode');
+  [s] = watch(begin(s, 1)[0]);
+  assert.equal(s.screen, 'done');
+  assert.ok(new RegExp(`data-a="start"[^>]*data-v="2"|data-v="2"[^>]*data-a="start"`).test(view(s)) && view(s).includes(text(s, 'ui.early')), 'offered on the well-done screen, beside tomorrow\'s teaser');
+  [s] = update(s, { t: 'home', day: D1 });
+  assert.deepEqual(todayOf(s), { next: undefined, wait: true, early: 2, seen: [1] });
+  assert.ok(view(s).includes(text(s, 'ui.early')) && view(s).includes(text(s, 'ui.tomorrow.title')), 'and on the home screen');
+  assert.ok(!spoken(update(s, { t: 'home', day: D1 })[1]).includes(text(s, 'ui.press.play')), 'but the app does not push it');
+  [s, fx] = begin(s, 2);
+  assert.ok([...hits(fx), ...s.meter.queue.map((h) => h.name)].includes('lets/hi/ahead'), 'going ahead is counted');
+  [s] = watch(s);
+  assert.deepEqual(todayOf(s), { next: undefined, wait: true, seen: [1, 2] }, 'two new episodes are the day\'s limit');
+  assert.ok(!view(s).includes(text(s, 'ui.early')) && view(s).includes(text(s, 'ui.tomorrow.title')));
+  assert.ok(!view(update(s, { t: 'home', day: D1 })[0]).includes(text(s, 'ui.early')));
+  [s] = update(s, { t: 'opened', day: D2, canCount: true });
+  assert.deepEqual(todayOf(s), { next: 3, wait: false, seen: [1, 2] }, 'tomorrow the next one opens by itself');
+  const aheads = (st, fx = []) => [...hits(fx), ...st.meter.queue.map((h) => h.name)].filter((n) => n.endsWith('/ahead')).length;
+  const before = aheads(s), [replayed, fx2] = begin(s, 1, D2);
+  assert.equal(aheads(replayed, fx2), before, 'watching an old episode again is not going ahead');
+  assert.deepEqual(todayOf(replayed).seen, [1, 2]);
 });
 
 test('the same lesson is a different story for a different learner and language', () => {
@@ -143,7 +173,7 @@ test('reminders: asked for by the learner, about a real episode, and only from t
   [s, fx] = update(s, { t: 'reminded', ok: true, day: D1 }); assert.equal(s.bell, true); assert.ok(kinds(fx).includes('save'));
   assert.deepEqual(reminderFor(s), { show: true, after: D1, title: 'आज की कहानी तैयार है', body: 'मालिक ने क्या पूछा? रवि क्या जवाब देगा?' });
   assert.deepEqual([update(s, { t: 'reminded', ok: false, day: D1 })[0].bell, update(s, { t: 'reminded', ok: false, day: D1 })[0].canRemind], [false, false], 'a phone that refuses just hides the bell');
-  [s] = update(s, { t: 'opened', day: D2, canCount: false }); [s] = watch(begin(s, 2, D2)[0]);
+  for (let n = 2; n <= EPISODES; n++) { [s] = update(s, { t: 'opened', day: dayN(n), canCount: false }); assert.equal(reminderFor(s).show, true); [s] = watch(begin(s, n, dayN(n))[0]); }
   assert.equal(reminderFor(s).show, false, 'nothing to remind about once every episode is finished');
 });
 
@@ -178,7 +208,7 @@ test('everything the app says aloud is on the list used to record voices', async
   const known = new Set(spokenTexts().map((x) => x.text));
   for (const lang of ['hi', 'or']) for (const track of ['work', 'home']) {
     let s = ready(lang, track), said = spoken(run(init, [{ t: 'opened', day: D1 }, { t: 'lang', lang, day: D1 }, { t: 'track', track, day: D1 }])[1]);
-    for (const [n, day] of [[1, D1], [2, D2]]) {
+    for (const [n, day] of Array.from({ length: EPISODES }, (_, i) => [i + 1, dayN(i + 1)])) {
       [s] = update(s, { t: 'opened', day, canCount: false });
       const [a, fx1] = begin(s, n, day); const [b, fx2] = watch(a, { wrongFirst: true }); s = b; said = said.concat(spoken(fx1), spoken(fx2));
       assert.equal(s.screen, 'done');

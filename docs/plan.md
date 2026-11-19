@@ -70,6 +70,7 @@ After two weeks: who opened it on day 2 and day 7, and can they say the seven li
 
 ## Where it stands
 
-- Done: the `story` library in wildarc-sutra; episodes 1 and 2 here (both tracks, Hindi and Odia), with drawn
-  scenes, a story that plays by itself, microphone-first speaking, tomorrow's hook and a reminder.
-- Next: episodes 3 to 7; recorded voices; a native check of the Odia text; then the test with real learners.
+- Done: the `story` library in wildarc-sutra; the first week here, episodes 1 to 7 (both tracks, Hindi and Odia), with
+  drawn scenes, a story that plays by itself, microphone-first speaking, tomorrow's hook, a reminder, two recorded
+  voices to choose from, and up to two new episodes a day.
+- Next: a native check of the Odia text; the test with real learners; week two.

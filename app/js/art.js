@@ -94,6 +94,8 @@ export const PLACES = {
 };
 
 /** Things to tap, each drawn in a 100 by 100 box. */
+const note = (n, paper, ink) => `<rect x="6" y="27" width="88" height="48" rx="6" fill="${paper}" stroke="${ink}" stroke-width="3"/><rect x="13" y="34" width="74" height="34" rx="3" fill="none" stroke="${ink}" stroke-width="1.5" opacity=".5"/>
+    <text x="50" y="62" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="30" fill="${ink}">₹${n}</text>`;
 export const THINGS = {
   bus: `<rect x="8" y="26" width="84" height="46" rx="11" fill="#E5484D"/><rect x="8" y="56" width="84" height="6" fill="#B93237"/>
     ${[15, 40, 65].map((x) => `<rect x="${x}" y="33" width="20" height="17" rx="3" fill="#D6F0FF"/>`).join('')}
@@ -105,6 +107,13 @@ export const THINGS = {
   clock: `<circle cx="50" cy="52" r="36" fill="#fff" stroke="#2A1A10" stroke-width="5"/><path d="M50 52V30M50 52l15 9" stroke="#2A1A10" stroke-width="5" stroke-linecap="round"/><circle cx="50" cy="52" r="4" fill="#E5484D"/><path d="M26 14l-10 9M74 14l10 9" stroke="#2A1A10" stroke-width="5" stroke-linecap="round"/>`,
   name: `<rect x="24" y="18" width="52" height="70" rx="8" fill="#fff" stroke="#2A1A10" stroke-width="4"/><rect x="41" y="10" width="18" height="14" rx="4" fill="#8A8A8A"/><circle cx="50" cy="46" r="11" fill="#D9A074"/><path d="M33 68h34M38 77h24" stroke="#2A1A10" stroke-width="4" stroke-linecap="round"/>`,
   money: `<rect x="10" y="30" width="80" height="44" rx="6" fill="#7CC38A" stroke="#3F8F52" stroke-width="3"/><circle cx="50" cy="52" r="13" fill="#DFF3E2"/><text x="50" y="59" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="20" fill="#3F8F52">₹</text>`,
+  ten: note(10, '#F1B77E', '#8C4A12'), twenty: note(20, '#DDE27A', '#5E6A12'), fifty: note(50, '#8FD6D0', '#17635D'),
+  soap: `<rect x="16" y="44" width="68" height="40" rx="15" fill="#F7A8C4" stroke="#C96A8E" stroke-width="3"/><rect x="29" y="55" width="42" height="18" rx="9" fill="none" stroke="#C96A8E" stroke-width="2.5"/>
+    <circle cx="30" cy="30" r="9" fill="#D6F0FF" stroke="#8FC7E8" stroke-width="2.5"/><circle cx="50" cy="18" r="6" fill="#D6F0FF" stroke="#8FC7E8" stroke-width="2.5"/><circle cx="67" cy="31" r="7" fill="#D6F0FF" stroke="#8FC7E8" stroke-width="2.5"/>`,
+  bag: `<path d="M22 38h56l7 52H15Z" fill="#F4A300" stroke="#B87A00" stroke-width="3" stroke-linejoin="round"/><path d="M36 44V28a14 14 0 0 1 28 0v16" fill="none" stroke="#8C5A2B" stroke-width="5" stroke-linecap="round"/><circle cx="36" cy="46" r="3.5" fill="#8C5A2B"/><circle cx="64" cy="46" r="3.5" fill="#8C5A2B"/>`,
+  pen: `<g transform="rotate(-40 50 50)"><rect x="10" y="42" width="62" height="16" rx="4" fill="#2F6FDE"/><rect x="10" y="42" width="12" height="16" rx="4" fill="#1B3F8F"/><path d="M72 42l18 8-18 8Z" fill="#F2D2A9"/><path d="M84 47.4l6 2.6-6 2.6Z" fill="#2A1A10"/><path d="M24 38h30" stroke="#1B3F8F" stroke-width="4" stroke-linecap="round"/></g>`,
+  tea: `<path d="M38 28q-6-8 0-15M50 28q-6-8 0-15M62 28q-6-8 0-15" fill="none" stroke="#B9B0A4" stroke-width="3.5" stroke-linecap="round"/><path d="M70 50h8a9 9 0 0 1 0 24H67" fill="none" stroke="#8C6A3F" stroke-width="5"/>
+    <path d="M24 38h48l-5 46a7 7 0 0 1-7 6H36a7 7 0 0 1-7-6Z" fill="#fff" stroke="#8C6A3F" stroke-width="3.5" stroke-linejoin="round"/><path d="M29.5 52h37l-3.4 31a3 3 0 0 1-3 2.7H36a3 3 0 0 1-3-2.7Z" fill="#B5713C"/>`,
 };
 
 /** Split a description into its place, people and things. */

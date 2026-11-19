@@ -3,11 +3,11 @@
 A daily story, told in your own language, that leaves you with one line of English you can use the
 same day. For people who never had the chance to learn English at school.
 
-**Status: episodes 1 and 2 are playable** in Hindi and Odia, with two stories to choose from. More episodes are being written.
+**Status: the first week, seven episodes, is playable** in Hindi and Odia, with two stories to choose from and two recorded voices. The Odia has not yet been checked by an Odia speaker.
 
 ## The idea
 
-- **A serial, not a syllabus.** One short episode a day about a family that has moved to the city.
+- **A serial, not a syllabus.** One short episode a day about a family that has moved to the city. A learner who wants more may watch one further episode the same day; after that the story waits for tomorrow.
   You come back to find out what happens next.
 - **Watch, listen and speak.** The story plays by itself in pictures and voice. You only tap a picture now and then, and say the line aloud, then hear yourself.
 - **No failing.** A wrong tap means the character tries again and the story carries on.

@@ -34,11 +34,12 @@ const trackScreen = (s) => `<main class="screen">
   ${s.canCount ? `<p class="fine">${esc(text(s, 'ui.counting.note'))}</p>` : ''}
 </main>`;
 
-/** Tomorrow's episode: a picture, the one line that sells it, and a way to be reminded. */
-const tomorrow = (s, up) => `<section class="tomorrow">
+/** Tomorrow's episode: a picture, the one line that sells it, a way to be reminded, and (once a day) a way not to wait. */
+const tomorrow = (s, up, early) => `<section class="tomorrow">
   <div class="eyebrow">${icon('moon')}${esc(text(s, 'ui.tomorrow.title'))}</div>
   ${up.art ? `<div class="frame dim">${scene(up.art)}</div>` : ''}
   <p class="tease">${esc(up.tease || up.title)}</p>
+  ${early ? btn('start', `${icon('play')}<span>${esc(text(s, 'ui.early'))}</span>`, `class="ghost" data-v="${early}"`) : ''}
   ${s.bell ? `<div class="pill">${icon('bell')}<span>${esc(text(s, 'ui.remind.on'))}</span></div>` : s.canRemind ? btn('remind', `${icon('bell')}<span>${esc(text(s, 'ui.remind'))}</span>`, 'class="ghost"') : ''}
   ${s.installable ? btn('install', `${icon('keep')}<span>${esc(text(s, 'ui.install'))}</span>`, 'class="ghost"') : ''}
 </section>`;
@@ -54,7 +55,7 @@ function homeScreen(s) {
         ${btn('start', icon('play'), `class="play" data-v="${ep.number}" ${label(s, 'ui.play')}`)}
         <div class="play-label">${esc(text(s, 'ui.play'))}</div>
       </section>`
-    : now.wait && up ? tomorrow(s, up)
+    : now.wait && up ? tomorrow(s, up, now.early)
       : `<section class="today rest"><div class="frame">${scene('plain ravi:happy asha:happy munni:happy')}</div><h1 class="title">${esc(text(s, 'ui.soon'))}</h1>${s.installable ? btn('install', `${icon('keep')}<span>${esc(text(s, 'ui.install'))}</span>`, 'class="ghost"') : ''}</section>`;
   const practice = known.length ? `<section class="shelf"><h2 class="eyebrow">${esc(text(s, 'ui.recap'))}</h2>${known.map((l) => lineCard(s, l)).join('')}</section>` : '';
   const replay = now.seen.length ? `<section class="shelf">${now.seen.map((n) => { const e = episodeOf(s, n); return e ? btn('start', `${icon('again')}<span>${esc(text(s, 'ui.episode', { n }))} · ${esc(e.title)}</span>`, `class="row" data-v="${n}" ${label(s, 'ui.replay')}`) : ''; }).join('')}</section>` : '';
@@ -110,7 +111,7 @@ function doneScreen(s) {
     <div class="frame">${scene('plain ravi:laugh asha:laugh munni:laugh')}</div>
     <h1 class="title">${esc(text(s, 'ui.done.title'))}</h1><p class="lead">${esc(text(s, 'ui.done.body'))}</p>
     ${lines.map((l) => lineCard(s, l)).join('')}
-    ${up && (now.wait || now.next) ? tomorrow(s, up) : `<p class="lead quiet">${esc(text(s, 'ui.soon'))}</p>${s.installable ? btn('install', `${icon('keep')}<span>${esc(text(s, 'ui.install'))}</span>`, 'class="ghost"') : ''}`}
+    ${up && (now.wait || now.next) ? tomorrow(s, up, now.early) : `<p class="lead quiet">${esc(text(s, 'ui.soon'))}</p>${s.installable ? btn('install', `${icon('keep')}<span>${esc(text(s, 'ui.install'))}</span>`, 'class="ghost"') : ''}`}
     <div class="stack">${btn('share', `${icon('share')}<span>${esc(text(s, 'ui.share'))}</span>`, 'class="ghost"')}${btn('home', `${icon('home')}<span>${esc(text(s, 'ui.back'))}</span>`, 'class="go soft" id="go"')}</div>
   </main>`;
 }
