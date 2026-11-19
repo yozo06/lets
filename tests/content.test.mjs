@@ -60,3 +60,22 @@ test('a shared link shows a picture: the page names a preview image that exists,
   const file = new URL('../app/' + image.slice(SHARE_URL.length), import.meta.url);
   assert.ok(existsSync(file)); assert.ok(statSync(file).size < 300_000, 'small enough for WhatsApp to show');
 });
+
+test('colours are readable in both themes: text 4.5:1, large text and outlines 3:1', async () => {
+  const { readFileSync } = await import('node:fs');
+  const css = readFileSync(new URL('../app/css/app.css', import.meta.url), 'utf8');
+  const vars = (block) => Object.fromEntries([...block.matchAll(/--([a-z-]+):\s*(#[0-9A-Fa-f]{6})/g)].map((m) => [m[1], m[2]]));
+  const light = vars(css.slice(css.indexOf(':root'), css.indexOf('}', css.indexOf(':root'))));
+  const at = css.indexOf('prefers-color-scheme: dark');
+  assert.ok(at > 0, 'there is a dark theme');
+  const dark = { ...light, ...vars(css.slice(at, css.indexOf('}', at))) };
+  const lum = (h) => { const [r, g, b] = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+  const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+  const pairs = [['ink', 'paper', 4.5], ['ink', 'card', 4.5], ['soft', 'paper', 4.5], ['soft', 'card', 4.5], ['soft', 'tint', 4.5], ['english', 'card', 4.5], ['good-ink', 'good', 4.5], ['on-sun', 'sun', 4.5],
+    ['edge', 'paper', 3], ['edge', 'card', 3], ['seg-done', 'paper', 3], ['sun', 'paper', 1.9], ['leaf', 'paper', 3]];
+  for (const [name, theme] of [['light', light], ['dark', dark]]) for (const [a, b, min] of pairs) {
+    assert.ok(theme[a] && theme[b], `${name}: --${a} and --${b} exist`);
+    assert.ok(ratio(theme[a], theme[b]) >= min, `${name}: --${a} on --${b} is ${ratio(theme[a], theme[b]).toFixed(2)}, needs ${min}`);
+  }
+  assert.ok(ratio('#FFFFFF', dark.leaf) >= 4 && ratio('#FFFFFF', light.leaf) >= 4, 'white on the green button');
+});

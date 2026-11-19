@@ -76,11 +76,16 @@ language (Hindi and English on most Android phones, Odia on very few); for Odia 
 reading the same words in Devanagari letters, which is understandable but accented, a stopgap. With no voice at
 all the story still plays, pausing on each line long enough to read it.
 
-To record every sentence once with [Sarvam AI](https://www.sarvam.ai) (natural Indian voices, including Odia):
+To record every sentence once with [Sarvam AI](https://www.sarvam.ai) (natural Indian voices, including Odia),
+add the secret `SARVAM_API_KEY` to the repository (Settings → Secrets and variables → Actions) and run the
+**audio-sarvam** workflow from the Actions tab, twice:
 
-- on your machine: `SARVAM_API_KEY=... npm run audio`, then `npm run sw`; or
-- on GitHub: add the secret `SARVAM_API_KEY` to the repository and run the **audio-sarvam** workflow
-  from the Actions tab. Tick "sample" first to hear six clips before recording everything.
+1. mode **sample**: records two long sentences per language in a few voices and attaches them to the run as
+   `sarvam-voice-samples`. Nothing is saved to the app. Download it, listen, pick one voice.
+2. mode **full**, with that voice in "speaker": records everything, saves it to the app and publishes it.
+
+On your own machine the same two steps are `SARVAM_API_KEY=... npm run audio -- --sample` and
+`SARVAM_API_KEY=... npm run audio -- --speaker <name>` followed by `npm run sw`. The key never goes in a file.
 
 `npm run audio -- --list` shows how much there is to record (no key needed). Clips are named after the
 sentence, so changing a sentence means recording that one again; untouched ones are kept.
