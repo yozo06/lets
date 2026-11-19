@@ -10,7 +10,8 @@
 //   2. Record everything with the voice you liked:
 //        SARVAM_API_KEY=sk_... npm run audio -- --speaker ritu
 //        npm run sw
-//   options: --pace 0.9 (0.5 to 2.0) · --model bulbul:v3 | bulbul:v4-flash · --force (record again)
+//   options: --pace 0.9 (0.5 to 2.0) · --force (record again)
+//   The model is bulbul:v3, the one with Odia. (bulbul:v4-flash has no Odia voices and names its voices differently.)
 //
 // No key on your machine? Add it as the repository secret SARVAM_API_KEY and run the
 // "audio-sarvam" workflow from the Actions tab. API: https://docs.sarvam.ai (text-to-speech).

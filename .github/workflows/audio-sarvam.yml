@@ -20,11 +20,6 @@ on:
       pace:
         description: Speaking pace (0.5 to 2.0, 1.0 = normal)
         default: '0.9'
-      model:
-        description: Sarvam model
-        type: choice
-        options: ['bulbul:v3', 'bulbul:v4-flash']
-        default: 'bulbul:v3'
       force:
         description: 'full: regenerate clips that already exist'
         type: boolean
@@ -46,7 +41,7 @@ jobs:
         run: test -n "$SARVAM_API_KEY" || { echo "::error::Add the repository secret SARVAM_API_KEY first."; exit 1; }
       - name: Sample voices
         if: inputs.mode == 'sample'
-        run: node scripts/gen-audio-sarvam.mjs --sample --speakers "${{ inputs.speakers }}" --pace "${{ inputs.pace }}" --model "${{ inputs.model }}"
+        run: node scripts/gen-audio-sarvam.mjs --sample --speakers "${{ inputs.speakers }}" --pace "${{ inputs.pace }}"
       - name: Offer the samples as a download
         if: inputs.mode == 'sample'
         uses: actions/upload-artifact@v4
@@ -56,7 +51,7 @@ jobs:
           if-no-files-found: error
       - name: Generate the full pack
         if: inputs.mode == 'full'
-        run: node scripts/gen-audio-sarvam.mjs --speaker "${{ inputs.speaker }}" --pace "${{ inputs.pace }}" --model "${{ inputs.model }}" ${{ inputs.force && '--force' || '' }}
+        run: node scripts/gen-audio-sarvam.mjs --speaker "${{ inputs.speaker }}" --pace "${{ inputs.pace }}" ${{ inputs.force && '--force' || '' }}
       - name: Refresh the offline file list and check
         if: inputs.mode == 'full'
         run: npm run sw && npm run check
@@ -67,7 +62,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A app/audio app/sw.js
           git diff --cached --quiet && { echo "Nothing new."; exit 0; }
-          git commit -m "Sarvam voices: ${{ inputs.speaker }}, ${{ inputs.model }}, pace ${{ inputs.pace }}"
+          git commit -m "Sarvam voices: ${{ inputs.speaker }}, bulbul:v3, pace ${{ inputs.pace }}"
           git push
       - name: Publish the site
         if: inputs.mode == 'full'
