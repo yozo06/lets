@@ -9,7 +9,7 @@ import { sendToGoatcounter } from '../vendor/sutra/browser/send.js';
 import { plan, NO_VOICES } from '../vendor/sutra/audio/index.js';
 import { transliterate } from '../vendor/sutra/i18n/indic.js';
 import { dayOf } from '../vendor/sutra/core/time.js';
-import { update, fromSave, toSave, episodeOf, reminderFor } from './program.js';
+import { update, fromSave, toSave, episodeOf, reminderFor, wholeVoices } from './program.js';
 import { view } from './view.js';
 import { LOCALES } from '../content/index.js';
 import { COUNT_ENDPOINT, SHARE_URL } from './config.js';
@@ -154,7 +154,7 @@ onActions(root, (name, data) => {
 }, dispatch);
 
 dispatch({ t: 'opened', canCount, canRemind });
-loadVoices('audio/manifest.json').then((v) => { voices = v; dispatch({ t: 'voices', packs: v.packs.map((p) => ({ id: p.id, label: p.label })), fallback: v.fallback }); });
+loadVoices('audio/manifest.json').then((all) => { const v = wholeVoices(all); voices = v; dispatch({ t: 'voices', packs: v.packs.map((p) => ({ id: p.id, label: p.label })), fallback: v.fallback }); });
 try { window.speechSynthesis.getVoices(); } catch (e) { /* no device voice */ }   // asks the phone to load its voices early
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installOffer = e; dispatch({ t: 'installable', on: true }); });
 window.addEventListener('appinstalled', () => { installOffer = null; dispatch({ t: 'installable', on: false }); });

@@ -1,5 +1,5 @@
 // Facts about this copy of the app.
-export const VERSION = '0.4.0';
+export const VERSION = '0.4.1';
 /** Where anonymous usage counts go (a GoatCounter site). Empty turns counting off. Forks: use your own or leave it empty. */
 export const COUNT_ENDPOINT = 'https://yozo.goatcounter.com/count';
 /** A serial with a little slack: how many new episodes may be watched in one day. The first opens by itself;

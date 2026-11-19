@@ -87,6 +87,9 @@ add the secret `SARVAM_API_KEY` to the repository (Settings → Secrets and vari
    saves it to the app and publishes it. Each voice is its own pack (`app/audio/<voice>/`); learners choose
    between them in the settings, by ear: each card shows a drawn person and plays a sentence when tapped.
    A new voice also needs an entry in `VOICES` in `app/js/config.js` (a face and a word for it).
+   A voice is offered to learners only once it has every clip the fullest voice has: if a run stops half way
+   (the run page ends red and says why, for example no credits left), what was recorded is kept, the app
+   carries on with the complete voice, and running **full** again records only the rest.
 
 The recorder is shared: it lives in [wildarc-sutra's `tts`](https://github.com/yozo06/wildarc-sutra/tree/main/src/tts),
 and this app only tells it which sentences exist (`npm run sentences`). To record by hand instead, pipe that

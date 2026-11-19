@@ -71,6 +71,16 @@ export const upcoming = (s) => {
   const scene = TRACKS[s.track].scenes[ep.skill];
   return { n: i + 1, title: ep.title, tease: scene.tease ? text(s, scene.tease) : '', art: (scene.beats.find((b) => b.t === 'tell' && b.art) || {}).art || '' };
 };
+/**
+ * Only voices that can tell the whole story are offered: a half-recorded pack would change voice in the
+ * middle of an episode. "Whole" means as many clips as the fullest pack. Takes and returns what the audio
+ * library reads from the manifest: { packs: [{ id, label, clips: Set }], fallback }.
+ */
+export const wholeVoices = (v) => {
+  const most = Math.max(0, ...v.packs.map((p) => p.clips.size));
+  const packs = v.packs.filter((p) => p.clips.size === most);
+  return { ...v, packs, fallback: packs.some((p) => p.id === v.fallback) ? v.fallback : packs.length ? packs[0].id : v.fallback };
+};
 /** The voice pack in use: the learner's choice if this copy carries it, otherwise the default. */
 export const voiceOf = (s) => (s.packs.some((p) => p.id === s.voice) ? s.voice : s.fallback);
 const stepWords = (step) => (step.t === 'tell' ? [step.text] : step.t === 'teach' ? [step.line.text, step.meaning] : step.t === 'choose' ? [step.ask] : step.t === 'say' ? [step.line.text] : step.t === 'recap' ? step.lines.map((l) => l.line.text) : []);

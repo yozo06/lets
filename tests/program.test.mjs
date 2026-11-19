@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { init, update, fromSave, toSave, episodeOf, todayOf, learned, upcoming, reminderFor, text, voiceOf, wordsAhead } from '../app/js/program.js';
+import { init, update, fromSave, toSave, episodeOf, todayOf, learned, upcoming, reminderFor, text, voiceOf, wordsAhead, wholeVoices } from '../app/js/program.js';
 import { view } from '../app/js/view.js';
 import { fold } from '../app/vendor/sutra/core/program.js';
 
@@ -238,6 +238,20 @@ test('voices: the learner chooses by ear, the choice is kept, and a missing voic
   assert.deepEqual([back.voice, back.packs, voiceOf(back)], ['roopa', [], ''], 'the choice is saved; the list of voices is read again each visit');
   const gone = update(back, { t: 'voices', packs: [{ id: 'gokul', label: 'Gokul' }], fallback: 'gokul', day: D2 })[0];
   assert.equal(voiceOf(gone), 'gokul', 'a chosen voice that is no longer carried falls back to the default');
+});
+
+test('a half-recorded voice is not offered, so the voice never changes in the middle of a story', () => {
+  const pack = (id, n) => ({ id, label: id, clips: new Set(Array.from({ length: n }, (_, i) => 'c' + i)) });
+  const half = wholeVoices({ packs: [pack('gokul', 301), pack('roopa', 188)], fallback: 'gokul' });
+  assert.deepEqual([half.packs.map((p) => p.id), half.fallback], [['gokul'], 'gokul']);
+  const other = wholeVoices({ packs: [pack('gokul', 188), pack('roopa', 301)], fallback: 'gokul' });
+  assert.deepEqual([other.packs.map((p) => p.id), other.fallback], [['roopa'], 'roopa'], 'the default moves to a voice that is whole');
+  assert.equal(wholeVoices({ packs: [pack('gokul', 301), pack('roopa', 301)], fallback: 'roopa' }).packs.length, 2);
+  assert.deepEqual(wholeVoices({ packs: [], fallback: '' }), { packs: [], fallback: '' });
+  let s = update(update(ready(), PACKS)[0], { t: 'voice', pack: 'roopa', day: D1 })[0];
+  s = update(s, { t: 'voices', packs: [{ id: 'gokul', label: 'Gokul' }], fallback: 'gokul', day: D2 })[0];
+  assert.deepEqual([s.voice, voiceOf(s)], ['roopa', 'gokul'], 'the learner\'s choice is kept for when that voice is whole again');
+  assert.ok(!view({ ...s, screen: 'settings' }).includes('data-a="voice"'));
 });
 
 test('the next episode is fetched ahead: everything it will say, and nothing when there are no clips', async () => {
