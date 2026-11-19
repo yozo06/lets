@@ -23,7 +23,7 @@ npm run check    # tests, content completeness, offline file list
 ```
 
 The voice is the phone's own Hindi and English voice until recorded clips are added
-(`npm run audio`, see [docs/content-guide.md](docs/content-guide.md#voices)). Few phones have an Odia voice;
+(the **tts** workflow, see [docs/content-guide.md](docs/content-guide.md#voices)). Few phones have an Odia voice;
 until clips exist, Odia is read by the phone's Hindi voice, which is understandable but accented.
 
 ## How it is made
@@ -39,7 +39,7 @@ app/                    the whole site; no build step
   js/main.js              the only file that touches the phone: voice, storage, microphone, network
   remind-sw.js            shows "today's story is ready" when the phone allows it
   vendor/sutra/           shared libraries copied from wildarc-sutra (do not edit here)
-scripts/                serve, build-sw, gen-audio-sarvam, sync-sutra
+scripts/                serve, build-sw, sentences (what the recorder reads), sync-sutra
 tests/                  node --test
 docs/                   plan, content guide, analytics
 ```

@@ -78,15 +78,19 @@ all the story still plays, pausing on each line long enough to read it.
 
 To record every sentence once with [Sarvam AI](https://www.sarvam.ai) (natural Indian voices, including Odia),
 add the secret `SARVAM_API_KEY` to the repository (Settings → Secrets and variables → Actions) and run the
-**audio-sarvam** workflow from the Actions tab, twice:
+**tts** workflow from the Actions tab, twice:
 
 1. mode **sample**: records two long sentences per language in a few voices and attaches them to the run as
-   `sarvam-voice-samples`. Nothing is saved to the app. Download it, listen, pick one voice.
-2. mode **full**, with that voice in "speaker": records everything, saves it to the app and publishes it.
+   `tts-voice-samples`. Nothing is saved to the app. Download it, open `index.html` inside to hear the voices
+   side by side, pick one.
+2. mode **full**, with that voice in "speaker": records everything still missing, saves it to the app and
+   publishes it.
 
-On your own machine the same two steps are `SARVAM_API_KEY=... npm run audio -- --sample` and
-`SARVAM_API_KEY=... npm run audio -- --speaker <name>` followed by `npm run sw`. The key never goes in a file.
+The recorder is shared: it lives in [wildarc-sutra's `tts`](https://github.com/yozo06/wildarc-sutra/tree/main/src/tts),
+and this app only tells it which sentences exist (`npm run sentences`). To record by hand instead, pipe that
+list into `sutra-tts` from a checkout of wildarc-sutra, with the key in the environment, then `npm run sw`.
+The key never goes in a file.
 
-`npm run audio -- --list` shows how much there is to record (no key needed). Clips are named after the
-sentence, so changing a sentence means recording that one again; untouched ones are kept.
+Clips are named after the sentence, so changing a sentence means recording that one again (run **full** again:
+only new sentences are recorded, and clips of sentences that no longer exist are deleted).
 A person's own recording saved under the same file name works just as well.

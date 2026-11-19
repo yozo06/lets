@@ -1,5 +1,5 @@
 // Everything the app can say aloud, as a list of { text, lang }. Pure.
-// Used to record voice clips ahead of time (scripts/gen-audio-sarvam.mjs) and tested against
+// Used to record voice clips ahead of time (scripts/sentences.mjs → wildarc-sutra tts) and tested against
 // the program, so that a line can never be spoken without being on this list.
 import { buildEpisode } from '../vendor/sutra/story/index.js';
 import { CURRICULUM, TRACKS, LOCALES } from '../content/index.js';

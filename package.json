@@ -10,7 +10,7 @@
     "test": "node --test",
     "sw": "node scripts/build-sw.mjs",
     "sutra": "node scripts/sync-sutra.mjs",
-    "audio": "node scripts/gen-audio-sarvam.mjs",
+    "sentences": "node scripts/sentences.mjs",
     "check": "npm test && node scripts/build-sw.mjs --check"
   }
 }
